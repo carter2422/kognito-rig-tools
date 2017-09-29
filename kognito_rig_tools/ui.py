@@ -286,16 +286,20 @@ class KognitoShapePanel(bpy.types.Panel):
         ob = context.object
         props = ob.pose.bones["props"]
 
-        row = layout.row(align=True)
-        row.prop(props, '["scale_arms"]', text="Scale Arms")
-        row = layout.row(align=True)
-        row.prop(props, '["scale_legs"]', text="Scale Legs")
+        box = layout.box()
+        row = box.row(align=True)
+        row.prop(props, '["up_nosebridge"]', text="Nosebridge up/down")
+        row.prop(props, '["out_nosebridge"]', text="Nosebridge in/out")
         row = layout.row(align=True)
         row.prop(props, '["scale_head"]', text="Scale Head")
         row = layout.row(align=True)
         row.prop(props, '["scale_neck"]', text="Scale Neck")
         row = layout.row(align=True)
+        row.prop(props, '["scale_arms"]', text="Scale Arms")
+        row = layout.row(align=True)
         row.prop(props, '["scale_torso"]', text="Scale Torso")
+        row = layout.row(align=True)
+        row.prop(props, '["scale_legs"]', text="Scale Legs")
 
 
 class KognitoPanel(bpy.types.Panel):
