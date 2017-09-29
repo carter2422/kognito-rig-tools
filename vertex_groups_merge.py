@@ -1,4 +1,4 @@
- # ##### BEGIN GPL LICENSE BLOCK #####
+# ##### BEGIN GPL LICENSE BLOCK #####
 #
 #  This program is free software; you can redistribute it and/or
 #  modify it under the terms of the GNU General Public License
@@ -42,7 +42,7 @@ import bpy
 
 
 def get_verts_in_group(vertices, weight_group):
-    """ List weights as floats or None if vertex not in weight_group """
+    """ List weights as floats or 0 if vertex not in weight_group """
     v_list = []
     index = weight_group.index
     for vert in vertices:
@@ -53,24 +53,36 @@ def get_verts_in_group(vertices, weight_group):
         if result:
             v_list.append(result[0])
         else:
-            v_list.append(None)
+            v_list.append(0)
     return v_list
 
 
 def merge_weights_to_group(ob, target_group, source_group, blend_mode):
     """ merge source weights into target group using blend_mode """
+
+    def mul(iterable):
+        result = iterable[0]
+        for num in iterable[1:]:
+            result *= num
+        return result
+
+    def mask(iterable):
+        result = iterable[-1]
+        for num in iterable[:-1]:
+            result *= 1 - num
+        return result
+
     vertices = ob.data.vertices
     source_weights = get_verts_in_group(vertices, source_group)
     target_weights = get_verts_in_group(vertices, target_group)
     new_weights = []
     for idx, weights in enumerate(zip(source_weights, target_weights)):
-        non_zeros = [w for w in weights if w is not None]
-        if non_zeros:
-            target_group.add([idx], sum(non_zeros), 'REPLACE') # TODO blend_mode
-
-
-def get_weight_groups(self, context):
-    return [tuple([g.name] * 3) for g in context.object.vertex_groups]
+        if blend_mode == "ADD":
+            target_group.add([idx], sum(weights), 'REPLACE')
+        elif blend_mode == "MULTIPLY":
+            target_group.add([idx], mul(weights), 'REPLACE')
+        elif blend_mode == "MASK":
+            target_group.add([idx], mask(weights), 'REPLACE')
 
 
 class WeightGroupMerge(bpy.types.Operator):
@@ -78,10 +90,13 @@ class WeightGroupMerge(bpy.types.Operator):
     bl_idname = 'object.vertex_group_merge_weights'
     bl_label = "Vertex Group Merge Weights"
 
-    source_group = bpy.props.EnumProperty(
-        items=get_weight_groups, name='Blend From Group')
+    source_group = bpy.props.StringProperty(name='Blend From Group')
     blend_mode = bpy.props.EnumProperty(
-        items=[("ADD", "Add", "Add Source to Active", 0)],
+        items=[
+            ("ADD", "Add", "Add Source to Active", 0),
+            ("MULTIPLY", "Multiply", "Multiply Source with Active", 1),
+            ("MASK", "Mask", "Multiply Inverse of Source with Active", 2)
+            ],
         name='Blend Mode')
     
     @classmethod
@@ -101,6 +116,11 @@ class WeightGroupMerge(bpy.types.Operator):
         source_group = ob.vertex_groups[self.source_group]
         merge_weights_to_group(ob, target_group, source_group, self.blend_mode)
         return {'FINISHED'}
+
+    def draw(self, context):
+        layout = self.layout
+        layout.prop_search(self.properties, "source_group", context.object, "vertex_groups")
+        layout.prop(self.properties, "blend_mode")
 
 
 def draw_func(self, context):
