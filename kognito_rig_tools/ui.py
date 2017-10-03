@@ -290,6 +290,8 @@ class KognitoShapePanel(bpy.types.Panel):
         row = box.row(align=True)
         row.prop(props, '["up_nosebridge"]', text="Nosebridge up/down")
         row.prop(props, '["out_nosebridge"]', text="Nosebridge in/out")
+        row = box.row(align=True)
+        row.prop(props, '["out_sockets"]', text= "eye sockets")
         row = layout.row(align=True)
         row.prop(props, '["scale_head"]', text="Scale Head")
         row = layout.row(align=True)
