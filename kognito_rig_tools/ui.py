@@ -109,12 +109,12 @@ class FKIKSwitcher(bpy.types.Operator):
         prop_holder = ob.pose.bones[self.prop[0]]
         prop = '{}{}'.format(self.prop[1], suffix)
         influence = prop_holder[prop]
-        if self.ik:
+        if self.ik and prop_holder[prop] < 0.00001:
             ob.data.layers[self.layers[self.side][-1]] = True
             ob.data.layers[self.layers[self.side][0]] = False
             self.ik_match(ob, chain, iks)
             prop_holder[prop] = 1.0
-        else:
+        elif prop_holder[prop] > 0.999999 and not self.ik:
             ob.data.layers[self.layers[self.side][-1]] = False
             ob.data.layers[self.layers[self.side][0]] = True
             self.fk_match(ob, chain, iks)
