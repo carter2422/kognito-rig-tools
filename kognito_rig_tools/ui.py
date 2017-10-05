@@ -118,7 +118,6 @@ class FKIKSwitcher(bpy.types.Operator):
         return {'FINISHED'}
 
 
-
 def find_or_add_constraint(bone, constraint):
     con = [con for con in bone.constraints if con.type in constraint]
     if not con:
@@ -327,12 +326,22 @@ class KognitoPanel(bpy.types.Panel):
         def fk_ik_controls(layout, side, prop):
 
             def clicker(layout, side, state, icon):
-                clicker = layout.operator(switcher, text="", icon=icon)
+                suffix = {"left": "L", "right": "R"}
+                col = layout.column(align=True)
+                level = props["IK_arms.{}".format(suffix[side])]
+                if state and level < .00001:
+                    col.enabled = True
+                elif not state and level > .99999:
+                    col.enabled = True
+                else:
+                    col.enabled = False
+                clicker = col.operator(switcher, text="", icon=icon)
                 clicker.side, clicker.ik = side, state
 
             row = layout.row(align=True)
             clicker(row, side, False, 'TRIA_LEFT')
-            row.prop(props, prop, text=side)
+            col = row.column(align=True)
+            col.prop(props, prop, text=side)
             clicker(row, side, True, 'TRIA_RIGHT')
 
         fk_ik_controls(box, 'right', '["IK_arms.R"]')
