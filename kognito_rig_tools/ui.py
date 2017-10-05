@@ -16,10 +16,8 @@ class RigToggleHandFollow(bpy.types.Operator):
             context.active_object.name == 'rig_ctrl')
 
     def execute(self, context):
-        hand_ik_bones = [
-            bone for bone in context.active_object.pose.bones
-            if bone.name.startswith('forearm_ik')]
-        constraints_toggle_child_of(hand_ik_bones)
+        context.object.pose.bones["props"]["arms_follow"] = (
+            1 - context.object.pose.bones["props"]["arms_follow"])
         return {'FINISHED'}
 
 
@@ -36,10 +34,8 @@ class RigToggleHandInheritRotation(bpy.types.Operator):
             context.active_object.name == 'rig_ctrl')
 
     def execute(self, context):
-        hand_bones = [
-            bone for bone in context.active_object.pose.bones
-            if bone.name.startswith('hand.')]
-        bones_toggle_property(hand_bones, 'use_inherit_rotation')
+        context.object.pose.bones["props"]["hands_rotate"] = (
+            1 - context.object.pose.bones["props"]["hands_rotate"])
         return {'FINISHED'}
 
 
@@ -345,8 +341,14 @@ class KognitoPanel(bpy.types.Panel):
         box = layout.box()
         box.label("Toggles:")
         row = box.row(align=True)
-        row.operator('pose.rig_toggle_hand_follow', text="Hands follow")
-        row.operator('pose.rig_toggle_hand_inherit_rotation', text="Hands rotate")
+        row.operator(
+            'pose.rig_toggle_hand_follow',
+            text="Hands follow",
+            icon="CHECKBOX_HLT" if props["arms_follow"] else "CHECKBOX_DEHLT")
+        row.operator(
+            'pose.rig_toggle_hand_inherit_rotation',
+            text="Hands rotate",
+            icon="CHECKBOX_HLT" if props["hands_rotate"] else "CHECKBOX_DEHLT")
 
         box = layout.box()
         box.label("Show/Hide:")
