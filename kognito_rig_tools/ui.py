@@ -282,7 +282,7 @@ def pole_position(chain, pole, pole_angle):
     """
     # Poll target for elbow is on the + X axis, for the knee we need to lock
     # the elbow to rotate along one axis only
-    order = 2
+    order = 0
     chain_0_data = chain[order].id_data.data.bones[chain[order].name]
     pole_data = pole.id_data.data.bones[pole.name]
     offmatelbow = chain_0_data.matrix_local.inverted() * pole_data.matrix_local
