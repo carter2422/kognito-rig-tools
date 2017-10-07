@@ -146,7 +146,7 @@ def getparentmats(bone):
     """ Get parent matrices for bones in many conditions """
     child_of = [c for c in bone.constraints if c.type == 'CHILD_OF']
     data_bone = bone.id_data.data.bones[bone.name]
-    if len(child_of) > 0:
+    if len(child_of) > 0 and not child_of[0].mute and child_of[0].influence > 0.99:
         child_of = child_of[0]
         parent = child_of.target.pose.bones[child_of.subtarget]
         parentposemat = parent.matrix
