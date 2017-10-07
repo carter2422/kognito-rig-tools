@@ -65,12 +65,16 @@ class FKIKSwitcher(bpy.types.Operator):
             context.mode == 'POSE' and 'kognito_rig' in context.object.keys()
             )
 
+
     def fk_match(self, ob, chain, iks):
+        """ Match the FK chain to the IK constrained position """
         for bone in chain:
             pose_bone = ob.pose.bones[bone]
             bake_rotation_scale(pose_bone)
 
     def ik_match(self, ob, chain, iks):
+        """ Place the IK handles to as close as possible match the FK angles"""
+        # TODO take into account the child of constraints when enabled
         target = ob.pose.bones[iks[-1]]
         source = ob.pose.bones[chain[-1]]
         constraints = (
@@ -138,9 +142,43 @@ def bones_toggle_property(bones, property_name):
         prop_value = getattr(bone.bone, property_name)
         setattr(bone.bone, property_name, not prop_value)
 
+def getparentmats(bone):
+    """ Get parent matrices for bones in many conditions """
+    child_of = [c for c in bone.constraints if c.type == 'CHILD_OF']
+    data_bone = bone.id_data.data.bones[bone.name]
+    if len(child_of) > 0:
+        child_of = child_of[0]
+        parent = child_of.target.pose.bones[child_of.subtarget]
+        parentposemat = parent.matrix
+        data_parent = child_of.target.data.bones[child_of.subtarget]
+        parentbonemat = data_parent.matrix_local
+    elif bone.parent:
+        parentposemat = bone.parent.matrix
+        parentbonemat = data_bone.parent.matrix_local
+    else:
+        parentposemat = None
+        parentbonemat = None
+    return parentposemat, parentbonemat
+
+
+def genericmat(bone, mat, ignoreparent):
+    '''
+    Puts the matrix mat from armature space into bone space
+    '''
+    data_bone = bone.id_data.data.bones[bone.name]
+    bonemat_local = data_bone.matrix_local  # self rest matrix
+    parentposemat, parentbonemat = getparentmats(bone)
+    if parentbonemat is None or ignoreparent:
+        newmat = bonemat_local.inverted() * mat
+    else:
+        bonemat = parentbonemat.inverted() * bonemat_local
+        newmat = bonemat.inverted() * parentposemat.inverted() * mat
+    return newmat
+
 
 def bake_rotation_scale(bone):
     """ bake constrained transform into bone rot/scale """
+
     data_bone = bone.id_data.data.bones[bone.name]
     bone_mat = data_bone.matrix_local
     parentless_mat = bone_mat.inverted() * bone.matrix
@@ -178,9 +216,8 @@ def loc_copy(source, target, use_tail, offset):
         location = source.tail
     else:
         location = source.matrix.to_translation()
-    if target.parent:
-        parentposemat = target.parent.matrix
-        parentbonemat = data_target.parent.matrix_local
+    parentposemat, parentbonemat = getparentmats(target)
+    if parentposemat:
         target.location = (
             (parentbonemat.inverted() * target_mat).inverted() *
             parentposemat.inverted() *
@@ -197,11 +234,10 @@ def rot_copy(source, target, offset):
     data_target = target.id_data.data.bones[target.name]
     target_mat = data_target.matrix_local
     parentless_mat = target_mat.inverted() * source.matrix
-    if not target.parent:
+    parentposemat, parentbonemat = getparentmats(target)
+    if not parentposemat:
         mat = parentless_mat
     else:
-        parentposemat = target.parent.matrix
-        parentbonemat = data_target.parent.matrix_local
         parented_mat = (
             (parentbonemat.inverted() * target_mat).inverted() *
             parentposemat.inverted() *
@@ -223,25 +259,21 @@ def rot_copy(source, target, offset):
             target.rotation_mode, target.rotation_euler)
 
 
-
-def genericmat(bone, mat, ignoreparent):
-    '''
-    Puts the matrix mat from armature space into bone space
-    '''
-    data_bone = bone.id_data.data.bones[bone.name]
-    bonemat_local = data_bone.matrix_local  # self rest matrix
-    if bone.parent:
-        parentposemat = bone.parent.matrix
-        parentbonemat = data_bone.parent.matrix_local
-    else:
-        parentposemat = None
-        parentbonemat = None
-    if parentbonemat is None or ignoreparent:
-        newmat = bonemat_local.inverted() * mat
-    else:
-        bonemat = parentbonemat.inverted() * bonemat_local
-        newmat = bonemat.inverted() * parentposemat.inverted() * mat
-    return newmat
+def adjust_childof(pose_bone):
+    """ returns the amount of displacement due to a child_of constraint """
+    child_of = [c for c in pose_bone.constraints if c.type == 'CHILD_OF']
+    if len(child_of) == 0:
+        return
+    child_of = child_of[0] # we can only deal with one for now
+    if child_of.mute or child_of.influence < 0.0001:
+        return
+    target = child_of.target
+    subtarget = target.pose.bones[child_of.subtarget]
+    subtarget_data = target.data.bones[child_of.subtarget]
+    mat = child_of.inverse_matrix
+    # we're going to assume target and pose_bone are in the same object
+    displacement = subtarget_data.matrix_local.inverted() * subtarget.matrix
+    return displacement
 
 
 def pole_position(chain, pole, pole_angle):
@@ -258,8 +290,11 @@ def pole_position(chain, pole, pole_angle):
     # vec.rotate(Euler((0, -pole_angle, 0)))
     offmatelbow = Matrix.Translation(vec)
     offmatarm = chain[0].matrix * offmatelbow
-
-    pole.location = genericmat(pole, offmatarm, False).to_translation()
+    child_mat = adjust_childof(pole)
+    if child_mat is None:
+        pole.location = genericmat(pole, offmatarm, True).to_translation()
+    else:
+        pole.location = genericmat(pole, offmatarm, False).to_translation()
     return
 
 
@@ -271,6 +306,7 @@ class KognitoShapePanel(bpy.types.Panel):
     bl_region_type = 'TOOLS'
     bl_category = "Kognito"
     bl_context = "posemode"
+
 
     @classmethod
     def poll(cls, context):
