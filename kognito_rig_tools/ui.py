@@ -18,6 +18,7 @@ class RigToggleHandFollow(bpy.types.Operator):
     def execute(self, context):
         context.object.pose.bones["props"]["arms_follow"] = (
             1 - context.object.pose.bones["props"]["arms_follow"])
+        context.scene.frame_set(context.scene.frame_current)
         return {'FINISHED'}
 
 
