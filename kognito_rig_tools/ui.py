@@ -34,8 +34,10 @@ class RigToggleHandInheritRotation(bpy.types.Operator):
             context.active_object.name == 'rig_ctrl')
 
     def execute(self, context):
-        context.object.pose.bones["props"]["hands_rotate"] = (
+        rotate = context.object.pose.bones["props"]["hands_rotate"] = (
             1 - context.object.pose.bones["props"]["hands_rotate"])
+        for bone in ("hand.R", "hand.L"):
+            context.object.data.bones[bone].use_inherit_rotation = rotate
         return {'FINISHED'}
 
 
