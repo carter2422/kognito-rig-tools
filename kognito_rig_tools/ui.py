@@ -9,6 +9,8 @@ class RigToggleHandFollow(bpy.types.Operator):
     bl_label = "Toggle IK hand follow torso"
     bl_context = "pose"
 
+    hands = ["arm_IK.L", "arm_IK.R", "forearm_ik_pole.R", "forearm_ik_pole.L"]
+
     @classmethod
     def poll(cls, context):
         return (
@@ -16,9 +18,24 @@ class RigToggleHandFollow(bpy.types.Operator):
             context.active_object.name == 'rig_ctrl')
 
     def execute(self, context):
+        ob = context.object
+        # copy the world position of the hands before it changes
+        bone_locations = {
+            hand: ob.pose.bones[hand].matrix.copy() for hand in self.hands}
+
+        # toggle the follow
         context.object.pose.bones["props"]["arms_follow"] = (
             1 - context.object.pose.bones["props"]["arms_follow"])
         context.scene.frame_set(context.scene.frame_current)
+
+        # write the world position to the local hand position
+        for bone_name, bone_matrix in bone_locations.items():
+            bone = ob.pose.bones[bone_name]
+            new_matrix = genericmat(bone, bone_matrix, False)
+            bone.location = new_matrix.to_translation()
+            bone_rotation(bone, new_matrix)
+            # bone.scale = new_matrix.to_scale() Don't scale
+
         return {'FINISHED'}
 
 
@@ -179,6 +196,22 @@ def genericmat(bone, mat, ignoreparent):
     return newmat
 
 
+def bone_rotation(bone, mat):
+    """ copy rotation part of matrix into appropriate rotation channels """
+
+    if bone.rotation_mode == 'AXIS_ANGLE':
+        axis_angle = mat.to_quaternion().to_axis_angle()
+        bone.rotation_axis_angle[0] = axis_angle[-1]
+        bone.rotation_axis_angle[1] = axis_angle[0][0]
+        bone.rotation_axis_angle[2] = axis_angle[0][1]
+        bone.rotation_axis_angle[3] = axis_angle[0][2]
+    elif bone.rotation_mode == 'QUATERNION':
+        bone.rotation_quaternion = mat.to_quaternion()
+    else:
+        bone.rotation_euler = mat.to_euler(
+            bone.rotation_mode, bone.rotation_euler)
+
+
 def bake_rotation_scale(bone):
     """ bake constrained transform into bone rot/scale """
 
@@ -200,13 +233,7 @@ def bake_rotation_scale(bone):
         scale_mat = (
             parented_mat if data_bone.use_inherit_scale else parentless_mat)
 
-    if bone.rotation_mode == 'AXIS_ANGLE':
-        bone.rotation_axis_angle = rot_mat.to_quaternion().to_axis_angle()
-    elif bone.rotation_mode == 'QUATERNION':
-        bone.rotation_quaternion = rot_mat.to_quaternion()
-    else:
-        bone.rotation_euler = rot_mat.to_euler(
-            bone.rotation_mode, bone.rotation_euler)
+    bone_rotation(bone, rot_mat)
     bone.scale = scale_mat.to_scale()
 
 
