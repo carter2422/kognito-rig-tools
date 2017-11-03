@@ -474,6 +474,7 @@ class KognitoPanel(bpy.types.Panel):
         row.prop(ob.data, "layers", index=15, text="IK Right", toggle=True)
         row.prop(ob.data, "layers", index=12, text="IK Left", toggle=True)
 
+
 @persistent
 def load_handler(dummy):
     # add the driver functions to the namespace
