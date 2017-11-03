@@ -1,6 +1,7 @@
 import bpy
 from mathutils import Vector, Matrix, Euler, Quaternion
 from mathutils.geometry import normal, intersect_point_line
+from bpy.app.handlers import persistent
 
 
 class RigToggleHandFollow(bpy.types.Operator):
@@ -473,13 +474,8 @@ class KognitoPanel(bpy.types.Panel):
         row.prop(ob.data, "layers", index=15, text="IK Right", toggle=True)
         row.prop(ob.data, "layers", index=12, text="IK Left", toggle=True)
 
-
-def register():
-    bpy.utils.register_class(RigToggleHandFollow)
-    bpy.utils.register_class(RigToggleHandInheritRotation)
-    bpy.utils.register_class(FKIKSwitcher)
-    bpy.utils.register_class(KognitoPanel)
-    bpy.utils.register_class(KognitoShapePanel)
+@persistent
+def load_handler(dummy):
     # add the driver functions to the namespace
     cached_value = Vector((0.0, 0.028712928295135498, -0.7043251991271973))
     #XXX cached value is rig dependent and must be adjusted to base_mesh.blend
@@ -493,6 +489,16 @@ def register():
         bpy.app.driver_namespace['scale_{}'.format(i)] = scaler
 
 
+def register():
+    bpy.utils.register_class(RigToggleHandFollow)
+    bpy.utils.register_class(RigToggleHandInheritRotation)
+    bpy.utils.register_class(FKIKSwitcher)
+    bpy.utils.register_class(KognitoPanel)
+    bpy.utils.register_class(KognitoShapePanel)
+    load(handler)
+    bpy.app.handlers.load_post.append(load_handler)
+
+
 
 
 def unregister():
@@ -501,6 +507,7 @@ def unregister():
     bpy.utils.unregister_class(FKIKSwitcher)
     bpy.utils.unregister_class(RigToggleHandFollow)
     bpy.utils.unregister_class(RigToggleHandInheritRotation)
+    bpy.app.handlers.load_post.remove(load_handler)
 
 if __name__ == "__main__":
     register()
