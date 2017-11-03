@@ -480,6 +480,19 @@ def register():
     bpy.utils.register_class(FKIKSwitcher)
     bpy.utils.register_class(KognitoPanel)
     bpy.utils.register_class(KognitoShapePanel)
+    # add the driver functions to the namespace
+    cached_value = Vector((0.0, 0.028712928295135498, -0.7043251991271973))
+    #XXX cached value is rig dependent and must be adjusted to base_mesh.blend
+    # do the following in a terminal and copy to cached_value:
+    # must be in edit mode!
+    # rig = D.objects["rig_ctrl"].data.edit_bones
+    # cached_value = rig["shin_ik.L"].head - rig["heel_roll.L"].head
+    for i in range(3):
+        def scaler(scale_legs, scale_feet):
+            return ((scale_feet-scale_legs) * cached_value)[i]
+        bpy.app.driver_namespace['scale_{}'.format(i)] = scaler
+
+
 
 
 def unregister():
