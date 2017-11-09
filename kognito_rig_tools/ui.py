@@ -496,7 +496,7 @@ def register():
     bpy.utils.register_class(FKIKSwitcher)
     bpy.utils.register_class(KognitoPanel)
     bpy.utils.register_class(KognitoShapePanel)
-    load(handler)
+    load_handler(None)
     bpy.app.handlers.load_post.append(load_handler)
 
 

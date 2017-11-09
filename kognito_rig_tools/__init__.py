@@ -4,7 +4,7 @@ bl_info = {
                    "A set of tools to aid in the generation of"
                    " effective rigs for Unity characters",
     "author":      "Jonathan Williamson, Bassam Kurdali",
-    "version":     (0, 0, 2),
+    "version":     (0, 4, 7),
     "blender":     (2, 7, 8),
     "location":    "View 3D > Properties",
     "warning":     "",  # used for warning icon and text in addons panel
