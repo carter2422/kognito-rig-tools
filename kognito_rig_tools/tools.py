@@ -9,13 +9,15 @@ class RigLinkFaceBones(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
+        """ checks for two selected armature objects, and an active object """
         return (
             len(context.selected_objects) == 2 and
             context.object and
             all(ob.type == 'ARMATURE' for ob in context.selected_objects))
 
     def execute(self, context):
-        active = context.active_object
+        active = context.active_object # active oject
+        # selected object that is not active
         selected = [
             ob for ob in context.selected_objects if ob is not active][0]
         face_link(active, selected)
@@ -77,11 +79,11 @@ class RigUnityUtils(bpy.types.Panel):
 
 
 def face_link(ctr, rig):
-    """ Link via constraint def rig to control rig """
-    deform_face_layer = 16
+    """ Utility to link face bones via constraint def rig to control rig """
+    deform_face_layer = 16 # the deform face bones are on this layer
     for bone in rig.pose.bones:
         dbone = rig.data.bones[bone.name]
-        if dbone.layers[16]:
+        if dbone.layers[deform_face_layer]:
             ctr_bone = bone.name.replace('GEO_', '')
             cons = bone.constraints.new('COPY_TRANSFORMS')
             cons.target = ctr
@@ -94,20 +96,33 @@ def bones_swap_org_def(bones):
 
 
 def copy_bone_transforms(source, target, bones=None):
+    """
+    Once the deform rig has been changed,
+    we need to copy the transformations to the control rig
+    """
     # thanks to https://blender.stackexchange.com/a/15940
     # Assume, that context.object is an armature
+    # since we don't have one to one bone naming map from constraints
+    mapping = {
+        b.name: b.constraints[0].subtarget
+        for b in source.pose.bones if b.constraints}
     context = bpy.context
     scene = context.scene
     # Store the bone data of source:
     bpy.ops.object.mode_set(mode='EDIT')
     bone_store = []
-    if bones:
-        source_bones = (source.data.edit_bones[b] for b in bones)
-    else:
-        source_bones = source.data.edit_bones
+    if bones: # if we are passed some bones, use only those
+        source_bones = (
+            source.data.edit_bones[b] for b in bones if b in mapping)
+    else: # otherwise, work on all mapped bones
+        source_bones = (
+            bone for bone in source.data.edit_bones if bone.name in mapping)
     for ebone in source_bones:
         bone_store.append([
-            ebone.name, ebone.head.copy(), ebone.tail.copy(), ebone.roll])
+            mapping[ebone.name], # we use the mapping name since names may not match
+            ebone.head.copy(),
+            ebone.tail.copy(),
+            ebone.roll])
     bpy.ops.object.mode_set(mode='OBJECT')
 
     scene.objects.active = target
@@ -118,7 +133,7 @@ def copy_bone_transforms(source, target, bones=None):
 
     ebones = target.data.edit_bones
     for bone_data in bone_store:
-        bid = bone_data[0]
+        bid = bone_data[0] # this will be the mapping name that now matches
         if bid in ebones:
             ebone = ebones[bid]
             ebone.head = bone_data[1].copy()
