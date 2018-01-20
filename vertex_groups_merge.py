@@ -26,8 +26,8 @@
 bl_info = {
     "name": "Vertex Weights Add",
     "author": "Bassam Kurdali",
-    "version": (0, 0),
-    "blender": (2, 76, 0),
+    "version": (0, 1),
+    "blender": (2, 79, 0),
     "location": "View3D > Tools > Weight Tools",
     "description": "Add Another Vertex Group into the Active One",
     "warning": "",
@@ -66,6 +66,9 @@ def merge_weights_to_group(ob, target_group, source_group, blend_mode):
             result *= num
         return result
 
+    def sub(iterable):
+        return abs(iterable[-1] - sum(iterable[:-1]))
+
     def mask(iterable):
         result = iterable[-1]
         for num in iterable[:-1]:
@@ -79,6 +82,8 @@ def merge_weights_to_group(ob, target_group, source_group, blend_mode):
     for idx, weights in enumerate(zip(source_weights, target_weights)):
         if blend_mode == "ADD":
             target_group.add([idx], sum(weights), 'REPLACE')
+        elif blend_mode == "SUBTRACT":
+            target_group.add([idx], sub(weights), 'REPLACE')
         elif blend_mode == "MULTIPLY":
             target_group.add([idx], mul(weights), 'REPLACE')
         elif blend_mode == "MASK":
@@ -94,11 +99,12 @@ class WeightGroupMerge(bpy.types.Operator):
     blend_mode = bpy.props.EnumProperty(
         items=[
             ("ADD", "Add", "Add Source to Active", 0),
-            ("MULTIPLY", "Multiply", "Multiply Source with Active", 1),
-            ("MASK", "Mask", "Multiply Inverse of Source with Active", 2)
+            ("SUBTRACT", "Subtract", "Subtract Source from Active", 1),
+            ("MULTIPLY", "Multiply", "Multiply Source with Active", 2),
+            ("MASK", "Mask", "Multiply Inverse of Source with Active", 3)
             ],
         name='Blend Mode')
-    
+
     @classmethod
     def poll(cls, context):
         return (

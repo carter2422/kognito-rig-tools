@@ -1,3 +1,6 @@
+"""
+Tools that aren't animation related, used for manipulating the rigs
+"""
 import bpy
 
 

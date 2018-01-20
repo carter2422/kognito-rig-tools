@@ -1,3 +1,7 @@
+"""
+Animation tools and UI
+Also contains UI for rigging related tools
+"""
 import bpy
 from mathutils import Vector, Matrix, Euler, Quaternion
 from mathutils.geometry import normal, intersect_point_line
@@ -366,6 +370,8 @@ class KognitoShapePanel(bpy.types.Panel):
         row = layout.row(align=True)
         row.prop(props, '["scale_arms"]', text="Scale Upper Arms")
         row.prop(props, '["scale_arms_2"]', text="Scale Lower Arms")
+        row = layout.row(align=True)
+        row.prop(props, '["scale_hands"]', text="Scale Hands")
         row = layout.row(align=True)
         row.prop(props, '["scale_torso"]', text="Scale Torso")
         row.prop(props, '["scale_chest"]', text="Chest amount")
