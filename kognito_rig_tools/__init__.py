@@ -4,7 +4,7 @@ bl_info = {
                    "A set of tools to aid in the generation of"
                    " effective rigs for Unity characters",
     "author":      "Jonathan Williamson, Bassam Kurdali",
-    "version":     (0, 0, 2),
+    "version":     (0, 5, 6),
     "blender":     (2, 7, 8),
     "location":    "View 3D > Properties",
     "warning":     "",  # used for warning icon and text in addons panel
@@ -12,6 +12,9 @@ bl_info = {
     "tracker_url": "",
     "category":    "Rigging"
     }
+
+# messy import stuff ensures import works both during testing and when
+# running as a proper addon
 
 if "bpy" in locals():
     import importlib
@@ -26,13 +29,13 @@ import bpy
 
 
 def register():
-    """ Just use register functions from the various submodules """
+    """ register the addon's submodules """
     ui.register()
     tools.register()
 
 
 
 def unregister():
-    """ Just use unregister functions from the various submodules """
+    """ register the addon's submodules """
     tools.unregister()
     ui.unregister()
